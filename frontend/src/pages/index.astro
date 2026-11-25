@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+
+// Redirect to user's saved language preference cookie (`rmb_lang`), falling back to default locale `/id`
+const savedLang = Astro.cookies.get('rmb_lang')?.value;
+const targetLang = savedLang === 'en' ? 'en' : 'id';
+
+return Astro.redirect(`/${targetLang}`);
+---

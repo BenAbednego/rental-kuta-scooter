@@ -1,0 +1,103 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { Icon } from 'astro-icon/components';
+import { DEFAULT_WHATSAPP_NUMBER, fetchSettings, formatPhoneNumber, sanitizeWaNumber } from '../lib/api';
+import { buildBookingMessage } from '../lib/whatsapp';
+import { icons } from '../lib/icons';
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+const isEn = lang === 'en';
+
+const settings = await fetchSettings();
+const rawWaNumber = settings.whatsapp_primary || DEFAULT_WHATSAPP_NUMBER;
+const waNumber = sanitizeWaNumber(rawWaNumber);
+const waMessage = buildBookingMessage(lang);
+const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`;
+const displayPhone = formatPhoneNumber(waNumber, false);
+const address = settings.business_address || 'Jl. Pantai Kuta No. 88, Badung, Bali';
+const operatingHours = (isEn ? settings.operating_hours_en : settings.operating_hours_id) || '08:00 - 22:00 WITA';
+
+interface Props {
+  mobileActionBar?: boolean;
+}
+
+const { mobileActionBar = false } = Astro.props;
+---
+
+<!-- Contrast Deep Coastal Navy Premium Footer -->
+<footer class:list={['bg-[#0E232E] border-t border-[#1D3A49] py-14 text-[#A8C5D1]', mobileActionBar && 'pb-[calc(6rem+env(safe-area-inset-bottom,0px))] lg:pb-14']}>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
+      
+      <!-- Brand & Tagline -->
+      <div class="md:col-span-5">
+        <div class="flex items-center">
+          <img 
+            src="/images/logo-final.png?v=3" 
+            alt="Kuta Logo" 
+            class="h-16 w-24 sm:h-20 sm:w-30 object-contain drop-shadow" 
+          />
+        </div>
+        <p class="mt-3.5 text-xs sm:text-sm text-[#A8C5D1] leading-relaxed max-w-sm">
+          {t('footer.tagline')}
+        </p>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="md:col-span-3">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-white">
+          {isEn ? "Navigation" : "Navigasi"}
+        </h4>
+        <ul class="mt-3.5 space-y-2 text-xs sm:text-sm text-[#A8C5D1]">
+          <li>
+            <a href={`/${lang}`} class="hover:text-[#8ED8F8] transition-colors">{t('nav.home')}</a>
+          </li>
+          <li>
+            <a href={`/${lang}/tentang`} class="hover:text-[#8ED8F8] transition-colors">{t('nav.about')}</a>
+          </li>
+          <li>
+            <a href={`/${lang}/katalog`} class="hover:text-[#8ED8F8] transition-colors">{t('nav.fleet')}</a>
+          </li>
+          <li>
+            <a href={`/${lang}/#gallery`} class="hover:text-[#8ED8F8] transition-colors">{isEn ? 'Gallery' : 'Galeri'}</a>
+          </li>
+          <li>
+            <a href={`/${lang}/kontak`} class="hover:text-[#8ED8F8] transition-colors">{t('nav.contact')}</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="md:col-span-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-white">
+          {isEn ? "Contact" : "Kontak"}
+        </h4>
+        <ul class="mt-3.5 space-y-2.5 text-xs sm:text-sm text-[#A8C5D1]">
+          <li class="flex items-center gap-2.5">
+            <Icon name={icons.phone} class="h-3.5 w-3.5 shrink-0 text-[#8ED8F8]" aria-hidden="true" />
+            <a href={waUrl} target="_blank" rel="noopener noreferrer" class="hover:text-[#8ED8F8] transition-colors">
+              {displayPhone}
+            </a>
+          </li>
+          <li class="flex items-center gap-2.5">
+            <Icon name={icons.mapPin} class="h-3.5 w-3.5 shrink-0 text-[#8ED8F8]" aria-hidden="true" />
+            <span>{address}</span>
+          </li>
+          <li class="flex items-center gap-2.5">
+            <Icon name={icons.clock} class="h-3.5 w-3.5 shrink-0 text-[#8ED8F8]" aria-hidden="true" />
+            <span>{operatingHours}</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Copyright -->
+    <div class="mt-12 border-t border-[#1D3A49] pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#7A98A6]">
+      <p>&copy; {new Date().getFullYear()} RMB Sewa Motor Kuta. {t('footer.rights')}</p>
+      <p class="mt-2 sm:mt-0">Kuta, Bali, Indonesia</p>
+    </div>
+  </div>
+</footer>

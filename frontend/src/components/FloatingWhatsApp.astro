@@ -1,0 +1,39 @@
+---
+import { getLangFromUrl } from '../i18n/utils';
+import { Icon } from 'astro-icon/components';
+import { DEFAULT_WHATSAPP_NUMBER, fetchSettings, sanitizeWaNumber } from '../lib/api';
+import { buildBookingMessage } from '../lib/whatsapp';
+import { icons } from '../lib/icons';
+
+interface Props {
+  hideOnMobile?: boolean;
+}
+
+const { hideOnMobile = false } = Astro.props;
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+
+const settings = await fetchSettings();
+const waNumber = sanitizeWaNumber(settings.whatsapp_primary || DEFAULT_WHATSAPP_NUMBER);
+
+const waMessage = buildBookingMessage(lang);
+
+const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`;
+---
+
+<!-- Floating WhatsApp Button (Clean, Proportional, No Decorative Clutter) -->
+<div class:list={['fixed bottom-6 right-6 z-50', hideOnMobile && 'hidden lg:block']}>
+  <a 
+    href={waUrl} 
+    target="_blank" 
+    rel="noopener noreferrer"
+    class="flex items-center gap-2.5 rounded-full bg-[#25D366] hover:bg-[#1EBE5A] px-4 py-2.5 text-white font-bold shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer wa-breathing interactive-tap"
+    aria-label="WhatsApp Customer Service"
+  >
+    <Icon name={icons.whatsapp} class="h-5 w-5 shrink-0 fill-current" aria-hidden="true" />
+
+    <span class="text-xs font-semibold tracking-wide">
+      WhatsApp
+    </span>
+  </a>
+</div>

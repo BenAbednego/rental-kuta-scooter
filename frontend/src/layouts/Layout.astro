@@ -1,0 +1,129 @@
+---
+import '../styles/global.css';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import FloatingWhatsApp from '../components/FloatingWhatsApp.astro';
+import CookieBanner from '../components/CookieBanner.astro';
+import { getLangFromUrl, getRouteWithoutLang } from '../i18n/utils';
+import { useTranslations } from '../i18n/utils';
+import { fetchSeo, type SeoPageKey } from '../lib/api';
+import { siteBrandName } from '../i18n/locales';
+
+interface Props {
+  title?: string;
+  description?: string;
+  seoPageKey?: SeoPageKey;
+}
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+const routeWithoutLang = getRouteWithoutLang(url.pathname);
+const isHome = routeWithoutLang === "/" || routeWithoutLang === "";
+const isMotorDetail = /^\/motor\/[^/]+\/?$/.test(routeWithoutLang);
+
+const { 
+  title = 'Sewa Motor Kuta Bali — Rental Motor Murah & Terpercaya',
+  description = 'Sewa motor matic & maxi scooter terbaru di Kuta Bali. Gratis 2 helm bersih, gratis delivery hotel & airport, tanpa biaya tersembunyi.',
+  seoPageKey,
+} = Astro.props;
+
+const seoDefaults = {
+  home: { title: t('seo.home.title'), description: t('seo.home.description') },
+  fleet: { title: t('seo.fleet.title'), description: t('seo.fleet.description') },
+  contact: { title: t('seo.contact.title'), description: t('seo.contact.description') },
+  about: { title: t('seo.about.title'), description: t('seo.about.description') },
+};
+const seoData = seoPageKey ? await fetchSeo(seoPageKey) : null;
+const localizedSeo = seoData?.[lang];
+const pageTitle = (localizedSeo?.title || (seoPageKey ? seoDefaults[seoPageKey].title : title));
+const pageDescription = (localizedSeo?.description || (seoPageKey ? seoDefaults[seoPageKey].description : description));
+const featuredImage = seoPageKey
+  ? seoData?.image_url || new URL('/images/logo-final.png?v=2', Astro.url).href
+  : null;
+---
+
+<!DOCTYPE html>
+<html lang={lang} class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/png" href="/images/logo-final.png?v=2" />
+    <link rel="apple-touch-icon" href="/images/logo-final.png?v=2" />
+    
+    <!-- SEO Meta Tags -->
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <meta name="robots" content="index, follow" />
+    {seoPageKey && (
+      <>
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        {featuredImage && <meta property="og:image" content={featuredImage} />}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={Astro.url.href} />
+        <meta property="og:locale" content={lang === 'en' ? 'en_US' : 'id_ID'} />
+        <meta property="og:site_name" content={siteBrandName} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {featuredImage && <meta name="twitter:image" content={featuredImage} />}
+      </>
+    )}
+    
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Preload Hero Image for Lighthouse Performance >= 90 -->
+    <link rel="preload" as="image" href="/images/kuta-5.jpeg" fetchpriority="high" />
+
+    <!-- Progressive Enhancement: Flag JS capability immediately to prevent flash of hidden content -->
+    <script is:inline>document.documentElement.classList.add('js');</script>
+
+    <style>
+      body {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex flex-col bg-white text-[#5F7380] antialiased selection:bg-[#8ED8F8] selection:text-[#0A2633]">
+    <Navbar />
+    <main class={isHome ? 'flex-grow overflow-x-clip pb-24 -mt-[72px] sm:-mt-20' : 'flex-grow overflow-x-clip pb-24'}>
+      <slot />
+    </main>
+    <FloatingWhatsApp hideOnMobile={isMotorDetail} />
+    <CookieBanner />
+    <Footer mobileActionBar={isMotorDetail} />
+
+    <!-- Quiet Luxury Scroll Reveal Observer (Zero-dependency, 60fps GPU compositor) -->
+    <script is:inline>
+      const initScrollReveal = () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.querySelectorAll('.reveal').forEach((el) => el.classList.add('is-visible'));
+          return;
+        }
+
+        const observer = new IntersectionObserver((entries, obs) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              obs.unobserve(entry.target);
+            }
+          });
+        }, {
+          rootMargin: '0px 0px -40px 0px',
+          threshold: 0.08
+        });
+
+        document.querySelectorAll('.reveal:not(.is-visible)').forEach((el) => {
+          observer.observe(el);
+        });
+      };
+
+      document.addEventListener('astro:page-load', initScrollReveal);
+      document.addEventListener('DOMContentLoaded', initScrollReveal);
+    </script>
+  </body>
+</html>

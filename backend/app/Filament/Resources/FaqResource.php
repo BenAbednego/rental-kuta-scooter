@@ -1,0 +1,122 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\FaqResource\Pages;
+use App\Models\Faq;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+
+class FaqResource extends Resource
+{
+    protected static ?string $model = Faq::class;
+
+    protected static ?string $navigationIcon = "heroicon-o-question-mark-circle";
+
+    protected static ?string $navigationLabel = "FAQs";
+
+    protected static ?string $navigationGroup = "Konten Website";
+
+    protected static ?int $navigationSort = 3;
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make("Pertanyaan & Jawaban (Bahasa Indonesia)")
+                    ->description("Konten FAQ yang akan ditampilkan untuk pengunjung versi bahasa Indonesia (/id).")
+                    ->schema([
+                        Forms\Components\TextInput::make("question_id")
+                            ->label("Pertanyaan (ID)")
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make("answer_id")
+                            ->label("Jawaban (ID)")
+                            ->required()
+                            ->rows(4),
+                    ]),
+
+                Forms\Components\Section::make("Questions & Answers (English)")
+                    ->description("FAQ content displayed for English visitors (/en).")
+                    ->schema([
+                        Forms\Components\TextInput::make("question_en")
+                            ->label("Question (EN)")
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make("answer_en")
+                            ->label("Answer (EN)")
+                            ->required()
+                            ->rows(4),
+                    ]),
+
+                Forms\Components\Section::make("Pengaturan Tampilan")
+                    ->schema([
+                        Forms\Components\TextInput::make("order")
+                            ->label("Urutan Tampil (Order)")
+                            ->numeric()
+                            ->default(0)
+                            ->helperText("Semakin kecil angka order, semakin di atas posisi tampilnya."),
+                        Forms\Components\Toggle::make("is_active")
+                            ->label("Status Aktif")
+                            ->default(true)
+                            ->helperText("Matikan untuk menyembunyikan FAQ ini dari website."),
+                    ])->columns(2),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make("order")
+                    ->label("Order")
+                    ->sortable()
+                    ->alignCenter(),
+                Tables\Columns\TextColumn::make("question_id")
+                    ->label("Pertanyaan (ID)")
+                    ->searchable()
+                    ->limit(50)
+                    ->weight("bold"),
+                Tables\Columns\TextColumn::make("question_en")
+                    ->label("Question (EN)")
+                    ->searchable()
+                    ->limit(50)
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\IconColumn::make("is_active")
+                    ->label("Aktif")
+                    ->boolean()
+                    ->alignCenter(),
+                Tables\Columns\TextColumn::make("updated_at")
+                    ->label("Terakhir Diubah")
+                    ->dateTime("d M Y H:i")
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->defaultSort("order", "asc")
+            ->filters([
+                Tables\Filters\TernaryFilter::make("is_active")
+                    ->label("Status Aktif"),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            "index" => Pages\ListFaqs::route("/"),
+            "create" => Pages\CreateFaq::route("/create"),
+            "edit" => Pages\EditFaq::route("/{record}/edit"),
+        ];
+    }
+}

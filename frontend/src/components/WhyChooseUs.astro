@@ -1,0 +1,60 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { Icon } from 'astro-icon/components';
+import { icons } from '../lib/icons';
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+const features = [
+  {
+    icon: icons.hardHat,
+    title: t('why.item1_title'),
+    desc: t('why.item1_desc'),
+  },
+  {
+    icon: icons.truck,
+    title: t('why.item2_title'),
+    desc: t('why.item2_desc'),
+  },
+  {
+    icon: icons.tag,
+    title: t('why.item3_title'),
+    desc: t('why.item3_desc'),
+  },
+  {
+    icon: icons.wrench,
+    title: t('why.item4_title'),
+    desc: t('why.item4_desc'),
+  },
+];
+---
+
+<section class="py-16 lg:py-24 bg-white">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="text-center max-w-2xl mx-auto">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-[#FFE58A]/35 border border-[#FFE58A] px-3.5 py-1 text-xs font-bold tracking-[0.16em] text-[#5C4500] uppercase mb-3">
+        Keunggulan RMB
+      </span>
+      <h2 class="mt-2 text-3xl font-extrabold text-[#1E293B] tracking-tight sm:text-4xl">
+        {t('why.title')}
+      </h2>
+      <p class="mt-3 text-base text-[#5F7380]">
+        {t('why.subtitle')}
+      </p>
+    </div>
+
+    <div class="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      {features.map((item) => (
+        <div class="rounded-2xl bg-white p-6 shadow-sm border border-[#E2ECE8] transition-all duration-300 hover:shadow-md hover:border-[#8ED8F8] hover:-translate-y-1">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-[#8ED8F8]/20 border border-[#8ED8F8]/40 text-[#0284C7]">
+            <Icon name={item.icon} class="h-6 w-6" aria-hidden="true" />
+          </div>
+          <h3 class="mt-4 text-base font-bold text-[#1E293B]">{item.title}</h3>
+          <p class="mt-2 text-xs sm:text-sm text-[#5F7380] leading-relaxed">{item.desc}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

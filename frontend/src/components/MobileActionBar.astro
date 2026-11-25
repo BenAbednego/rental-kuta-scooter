@@ -1,0 +1,138 @@
+---
+import { Icon } from 'astro-icon/components';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { DEFAULT_WHATSAPP_NUMBER, fetchSettings, sanitizeWaNumber } from '../lib/api';
+import { buildMotorInquiryMessage } from '../lib/whatsapp';
+import { icons } from '../lib/icons';
+
+interface Props {
+  motorName: string;
+  slug: string;
+}
+
+const { motorName, slug } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const settings = await fetchSettings();
+const waNumber = sanitizeWaNumber(settings.whatsapp_primary || DEFAULT_WHATSAPP_NUMBER);
+const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(buildMotorInquiryMessage(lang, motorName))}`;
+const pageUrl = new URL(`/${lang}/motor/${slug}`, Astro.url.origin).href;
+---
+
+<nav
+  data-mobile-action-bar
+  data-motor-name={motorName}
+  data-page-url={pageUrl}
+  data-copied-message={t('detail.link_copied')}
+  aria-label={t('detail.mobile_actions')}
+  class="fixed bottom-[calc(12px+env(safe-area-inset-bottom,0px))] left-3 right-3 z-40 flex items-center justify-around rounded-full bg-[#0369A1] px-2 py-2 text-white shadow-xl lg:hidden"
+>
+  <a
+    href={`/${lang}`}
+    class="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full text-white transition-colors hover:bg-white/10"
+  >
+    <Icon name={icons.home} class="h-6 w-6" aria-hidden="true" />
+    <span class="text-[11px] leading-tight">{t('detail.mobile_home')}</span>
+  </a>
+
+  <button
+    type="button"
+    data-booking-action
+    class="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full text-white transition-colors hover:bg-white/10"
+  >
+    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#8ED8F8]">
+      <Icon name={icons.calendarDays} class="h-6 w-6 text-[#0A2633]" aria-hidden="true" />
+    </span>
+    <span class="text-[11px] leading-tight">{t('detail.mobile_booking')}</span>
+  </button>
+
+  <a
+    href={waUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full text-white transition-colors hover:bg-white/10"
+  >
+    <Icon name={icons.whatsapp} class="h-6 w-6 fill-current" aria-hidden="true" />
+    <span class="text-[11px] leading-tight">{t('detail.mobile_whatsapp')}</span>
+  </a>
+
+  <button
+    type="button"
+    data-share-action
+    class="hidden min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full text-white transition-colors hover:bg-white/10"
+  >
+    <Icon name={icons.share} class="h-6 w-6" aria-hidden="true" />
+    <span class="text-[11px] leading-tight">{t('detail.mobile_share')}</span>
+  </button>
+
+  <span
+    data-share-toast
+    role="status"
+    aria-live="polite"
+    class="pointer-events-none fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-full bg-[#0E232E] px-4 py-2 text-xs font-semibold text-white shadow-lg"
+  ></span>
+</nav>
+
+<script>
+  const initMobileActionBar = () => {
+    document.querySelectorAll<HTMLElement>('[data-mobile-action-bar]').forEach((bar) => {
+      if (bar.dataset.initialized === 'true') return;
+      bar.dataset.initialized = 'true';
+
+      const bookingButton = bar.querySelector<HTMLButtonElement>('[data-booking-action]');
+      const shareButton = bar.querySelector<HTMLButtonElement>('[data-share-action]');
+      const toast = bar.querySelector<HTMLElement>('[data-share-toast]');
+      const hasShare = typeof navigator.share === 'function';
+      const hasClipboard = typeof navigator.clipboard?.writeText === 'function';
+
+      if (!hasShare && !hasClipboard) {
+        shareButton?.remove();
+      } else {
+        shareButton?.classList.remove('hidden');
+        shareButton?.classList.add('flex');
+      }
+
+      bookingButton?.addEventListener('click', () => {
+        const form = document.getElementById('booking-form');
+        const nameInput = document.getElementById('customer-name');
+        if (!form || !nameInput) return;
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        form.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+        nameInput.focus({ preventScroll: true });
+      });
+
+      shareButton?.addEventListener('click', async () => {
+        const shareData = {
+          title: document.title,
+          text: bar.dataset.motorName || '',
+          url: window.location.href || bar.dataset.pageUrl || '',
+        };
+
+        if (hasShare) {
+          try {
+            await navigator.share(shareData);
+            return;
+          } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') return;
+          }
+        }
+
+        if (!hasClipboard || !toast) return;
+
+        try {
+          await navigator.clipboard.writeText(shareData.url);
+          toast.textContent = bar.dataset.copiedMessage || '';
+          toast.classList.remove('hidden');
+          window.setTimeout(() => toast.classList.add('hidden'), 2000);
+        } catch (error) {
+          console.error('Failed to copy motor page link', error);
+        }
+      });
+    });
+  };
+
+  document.addEventListener('DOMContentLoaded', initMobileActionBar);
+  document.addEventListener('astro:page-load', initMobileActionBar);
+  initMobileActionBar();
+</script>

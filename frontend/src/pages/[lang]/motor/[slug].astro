@@ -1,0 +1,167 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import BookingForm from '../../../components/BookingForm.astro';
+import MobileActionBar from '../../../components/MobileActionBar.astro';
+import { fetchMotorBySlug } from '../../../lib/api';
+import { getLangFromUrl, useTranslations } from '../../../i18n/utils';
+import { Icon } from 'astro-icon/components';
+import { icons } from '../../../lib/icons';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+const motor = await fetchMotorBySlug(slug as string);
+
+if (!motor) {
+  return Astro.redirect(`/${lang}/katalog`);
+}
+
+const description = lang === 'en' 
+  ? (motor.description_en || motor.description_id) 
+  : (motor.description_id || motor.description_en);
+
+const formatPrice = (price: number | null | undefined) => {
+  if (!price) return null;
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(price);
+};
+
+const formattedDaily = formatPrice(motor.price_daily);
+const formattedWeekly = formatPrice(motor.price_weekly);
+const formattedMonthly = formatPrice(motor.price_monthly);
+const formattedDeposit = formatPrice(motor.deposit_amount);
+
+const specsList = motor.specs ? Object.entries(motor.specs) : [];
+---
+
+<Layout 
+  title={`${motor.name} — RMB Sewa Motor Kuta`}
+  description={description || `${motor.name} rental motor murah di Kuta Bali.`}
+>
+  <div class="bg-white pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] pt-12 sm:pt-16 lg:pb-16">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      
+      <!-- Back Link -->
+      <a 
+        href={`/${lang}/katalog`} 
+        class="inline-flex items-center gap-2 text-xs font-bold text-[#5F7380] hover:text-[#0284C7] transition-colors mb-8"
+      >
+        <Icon name={icons.arrowLeft} class="h-4 w-4" aria-hidden="true" />
+        <span>{t('detail.back')}</span>
+      </a>
+
+      <div class="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,60fr)_minmax(0,40fr)] lg:gap-8 xl:grid-cols-[minmax(0,65fr)_minmax(0,35fr)] xl:gap-12">
+        <div class="min-w-0 space-y-8">
+          <div class="flex h-80 max-h-[480px] w-full items-center justify-center rounded-2xl border border-[#E2ECE8] bg-white p-8 shadow-sm sm:h-[min(30rem,60vw)]">
+            <img 
+              src={motor.main_image || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=600&auto=format&fit=crop&q=80'} 
+              alt={motor.name}
+              class="max-h-full max-w-full object-contain mix-blend-multiply"
+            />
+          </div>
+
+          {motor.gallery_images && motor.gallery_images.length > 0 && (
+            <div class="flex gap-3 overflow-x-auto pb-2">
+              {motor.gallery_images.map((imgUrl) => (
+                <div class="h-20 w-24 shrink-0 rounded-xl border border-[#E2ECE8] bg-white p-2 overflow-hidden">
+                  <img src={imgUrl} alt={motor.name} class="h-full w-full object-contain mix-blend-multiply" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div class="min-w-0">
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-bold tracking-wider uppercase text-[#0284C7]">
+                {motor.category}
+              </span>
+              {motor.cc && (
+                <span class="text-xs text-[#5F7380]">
+                  • {motor.cc} cc Engine
+                </span>
+              )}
+            </div>
+
+            <h1 class="mt-2 break-words text-2xl font-extrabold tracking-tight text-[#1E293B] sm:text-4xl">
+              {motor.name}
+            </h1>
+
+            <div class="mt-6 rounded-2xl bg-white border border-[#E2ECE8] p-6 shadow-md">
+              <div>
+                <span class="text-xs text-[#5F7380] block mb-1">Tarif Sewa Harian</span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-extrabold text-[#0284C7]">{formattedDaily}</span>
+                  <span class="text-xs text-[#5F7380]">{t('detail.per_day')}</span>
+                </div>
+              </div>
+
+              {(formattedWeekly || formattedMonthly || formattedDeposit) && (
+                <div class="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-[#E2ECE8] pt-4 text-xs">
+                  {formattedWeekly && (
+                    <div>
+                      <span class="text-[#5F7380] block">{t('detail.price_weekly')}</span>
+                      <p class="font-bold text-[#1E293B] mt-0.5">{formattedWeekly}</p>
+                    </div>
+                  )}
+                  {formattedMonthly && (
+                    <div>
+                      <span class="text-[#5F7380] block">{t('detail.price_monthly')}</span>
+                      <p class="font-bold text-[#1E293B] mt-0.5">{formattedMonthly}</p>
+                    </div>
+                  )}
+                  {formattedDeposit && (
+                    <div>
+                      <span class="text-[#5F7380] block">{t('detail.deposit_req')}</span>
+                      <p class="font-bold text-[#1E293B] mt-0.5">{formattedDeposit}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {description && (
+              <div class="mt-6">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-[#1E293B]">
+                  {t('detail.desc_heading')}
+                </h3>
+                <p class="mt-2 text-sm text-[#5F7380] leading-relaxed">
+                  {description}
+                </p>
+              </div>
+            )}
+
+            {specsList.length > 0 && (
+              <div class="mt-6">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-[#1E293B]">
+                  {t('detail.specs_heading')}
+                </h3>
+                <div class="mt-3 grid grid-cols-2 gap-3 text-xs">
+                  {specsList.map(([key, val]) => (
+                    <div class="rounded-xl bg-white border border-[#E2ECE8] p-3 shadow-sm">
+                      <span class="text-[#5F7380] block">{key}</span>
+                      <span class="font-bold text-[#1E293B] mt-0.5 block">{val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div class="min-w-0">
+          <div class="min-w-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+            <BookingForm motor={motor} lang={lang} />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <MobileActionBar motorName={motor.name} slug={slug as string} />
+</Layout>

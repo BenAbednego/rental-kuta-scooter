@@ -1,0 +1,111 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import MotorFilters from '../../components/MotorFilters.astro';
+import { DEFAULT_WHATSAPP_NUMBER, fetchHero, fetchMotors, fetchSeo, fetchSettings, sanitizeWaNumber } from '../../lib/api';
+import { getLangFromUrl, useTranslations } from '../../i18n/utils';
+import { Icon } from 'astro-icon/components';
+import { icons } from '../../lib/icons';
+
+export const prerender = false;
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+const currentCategory = url.searchParams.get('category') || '';
+const currentType = url.searchParams.get('tipe') || currentCategory;
+const currentBrand = url.searchParams.get('brand') || '';
+const [allMotors, settings, hero, fleetSeo] = await Promise.all([
+  fetchMotors(),
+  fetchSettings(),
+  fetchHero(),
+  fetchSeo('fleet'),
+]);
+const whatsappNumber = sanitizeWaNumber(settings.whatsapp_primary || DEFAULT_WHATSAPP_NUMBER);
+const bannerImage = fleetSeo.image_url || hero.image_url || hero.slides?.[0] || hero.poster_url || '/images/kuta-5.jpeg';
+
+const typeFilteredMotors = currentType
+  ? allMotors.filter((motor) => motor.category?.toLowerCase() === currentType.toLowerCase())
+  : allMotors;
+const motors = currentBrand
+  ? typeFilteredMotors.filter((motor) => motor.brand?.toLowerCase() === currentBrand.toLowerCase())
+  : typeFilteredMotors;
+
+---
+
+<Layout seoPageKey="fleet">
+  <!-- Header Banner: Full-Bleed Panoramic Bali Hero with kuta-10.jpeg (Like on Home) -->
+  <section class="relative min-h-[380px] sm:min-h-[440px] flex items-center justify-center pt-16 sm:pt-20 pb-16 sm:pb-20">
+    
+    <!-- Full-Bleed Background Image (Dynamic from Admin SEO / Hero or fallback) -->
+    <div class="absolute inset-0 w-full h-full -z-10">
+      <img 
+        src={bannerImage} 
+        alt="Katalog Rental Motor Kuta Bali - Pilihan Armada Terbaik" 
+        class="w-full h-full object-cover object-center"
+        loading="eager"
+        fetchpriority="high"
+      />
+      <!-- Cinematic Gradient Overlay: Enhances text readability while preserving Handara Gate beauty -->
+      <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/35"></div>
+      <div class="absolute inset-0 bg-black/20"></div>
+    </div>
+
+    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full text-center flex flex-col items-center">
+      <!-- Headline -->
+      <h1 
+        class="font-extrabold text-white tracking-tight leading-[1.15] drop-shadow-md max-w-3xl"
+        style="font-size: clamp(2rem, 4.5vw, 3.5rem);"
+      >
+        {lang === 'en' ? (
+          <>
+            Find the Perfect Bike for Your <span class="text-[#8ED8F8]">Bali Journey.</span>
+          </>
+        ) : (
+          <>
+            Temukan Motor yang Pas untuk <span class="text-[#8ED8F8]">Perjalananmu.</span>
+          </>
+        )}
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="mt-4 text-sm sm:text-base text-white/90 max-w-2xl leading-relaxed drop-shadow-sm font-medium">
+        {t('fleet.desc')}
+      </p>
+
+    </div>
+
+    <div class="absolute bottom-0 left-1/2 z-20 w-full max-w-7xl -translate-x-1/2 translate-y-1/2 px-4 text-left sm:px-6 lg:px-8">
+      <MotorFilters
+        motors={allMotors}
+        action={`/${lang}/katalog`}
+        selectedType={currentType}
+        selectedBrand={currentBrand}
+      />
+    </div>
+  </section>
+
+  <!-- Motors Grid (3 Columns on Desktop, 2 on Mobile & Tablet) -->
+  <section class="bg-white pb-16 pt-16 sm:pt-20 lg:pb-24 lg:pt-24">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {motors.length > 0 ? (
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-8">
+          {motors.map((motor) => (
+            <ProductCard motor={motor} whatsappNumber={whatsappNumber} />
+          ))}
+        </div>
+      ) : (
+        <div class="rounded-[6px] border border-dashed border-[#E2ECE8] py-16 text-center bg-white shadow-sm">
+          <div class="flex justify-center mb-2">
+            <Icon name={icons.bike} class="h-10 w-10 text-[#8D9FA9] stroke-[1.5]" aria-hidden="true" />
+          </div>
+          <p class="mt-3 text-sm text-[#5F7380]">{currentType || currentBrand ? t('fleet.empty_search') : t('fleet.empty')}</p>
+          <a href={`/${lang}/katalog`} class="mt-4 inline-block text-xs font-bold text-[#0284C7] hover:underline">
+            {lang === 'en' ? 'View all bikes' : 'Lihat semua armada'}
+          </a>
+        </div>
+      )}
+    </div>
+  </section>
+</Layout>

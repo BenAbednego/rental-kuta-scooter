@@ -1,0 +1,67 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { Icon } from 'astro-icon/components';
+import { icons } from '../lib/icons';
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+const steps = [
+  {
+    num: '1',
+    icon: icons.bike,
+    title: t('how.step1_title'),
+    desc: t('how.step1_desc'),
+  },
+  {
+    num: '2',
+    icon: icons.fileText,
+    title: t('how.step2_title'),
+    desc: t('how.step2_desc'),
+  },
+  {
+    num: '3',
+    icon: icons.creditCard,
+    title: t('how.step3_title'),
+    desc: t('how.step3_desc'),
+  },
+  {
+    num: '4',
+    icon: icons.keyRound,
+    title: t('how.step4_title'),
+    desc: t('how.step4_desc'),
+  },
+];
+---
+
+<section class="py-16 lg:py-24 bg-white">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    
+    <div class="text-center max-w-xl mx-auto">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-[#FFE58A]/35 border border-[#FFE58A] px-4 py-1.5 text-xs font-bold text-[#5C4500] uppercase tracking-wider">
+        {t('how.tag')}
+      </span>
+      <h2 class="mt-3 text-3xl font-extrabold text-[#1E293B] tracking-tight sm:text-4xl">
+        {t('how.title')}
+      </h2>
+    </div>
+
+    <!-- 4 Step Cards Row -->
+    <div class="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {steps.map((step) => (
+        <div class="rounded-2xl bg-white p-6 shadow-sm border border-[#E2ECE8] transition-all duration-300 hover:shadow-md hover:border-[#8ED8F8] hover:-translate-y-1 text-center relative flex flex-col items-center">
+          
+          <!-- Circular Icon (Sky Blue with Dark Accent Ink) -->
+          <div class="flex h-14 w-14 items-center justify-center rounded-full bg-[#8ED8F8] text-[#0A2633] font-black shadow-md shadow-[#8ED8F8]/30 mb-4">
+            <Icon name={step.icon} class="h-6 w-6 text-[#0A2633] stroke-[2]" aria-hidden="true" />
+          </div>
+
+          <h3 class="text-base font-bold text-[#1E293B]">{step.title}</h3>
+          <p class="mt-2 text-xs sm:text-sm text-[#5F7380] leading-relaxed max-w-xs">{step.desc}</p>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>

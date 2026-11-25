@@ -1,0 +1,163 @@
+---
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { fetchPricingPackages } from "../lib/api";
+import { Icon } from "astro-icon/components";
+import { icons } from "../lib/icons";
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+// Fetch dynamic packages from backend API
+const apiPackages = await fetchPricingPackages();
+
+// Fallback static packages from project data
+const fallbackPackages = [
+  {
+    name: t("pricing.daily_title"),
+    subtitle: t("pricing.daily_sub"),
+    price: "Rp 85.000",
+    price_unit: lang === "en" ? "/ day" : "/ hari",
+    benefits: [
+      lang === "en" ? "2 Sanitized SNI Helmets" : "2 Helm Higienis SNI",
+      lang === "en" ? "2 Sets of Raincoats" : "Jas Hujan 2 Set",
+      lang === "en" ? "24/7 Roadside Assistance" : "Layanan Darurat 24 Jam",
+      lang === "en" ? "Free Delivery Kuta Area" : "Free Delivery Area Kuta",
+    ],
+    cta_label: t("pricing.btn_daily"),
+    is_featured: false,
+  },
+  {
+    name: t("pricing.weekly_title"),
+    subtitle: t("pricing.weekly_sub"),
+    price: "Rp 550.000",
+    price_unit: lang === "en" ? "/ week" : "/ minggu",
+    benefits: [
+      lang === "en" ? "Special Package Discount" : "Diskon Paket Spesial",
+      lang === "en" ? "2 Sanitized SNI Helmets" : "2 Helm Higienis SNI",
+      lang === "en" ? "Raincoats & Phone Holder" : "Jas Hujan & Phone Holder",
+      lang === "en" ? "Free Airport Delivery (DPS)" : "Free Airport Delivery (DPS)",
+    ],
+    cta_label: t("pricing.btn_weekly"),
+    is_featured: true,
+  },
+  {
+    name: t("pricing.monthly_title"),
+    subtitle: t("pricing.monthly_sub"),
+    price: "Rp 1.800.000",
+    price_unit: lang === "en" ? "/ month" : "/ bulan",
+    benefits: [
+      lang === "en" ? "Save Up to 40%" : "Hemat Hingga 40%",
+      lang === "en" ? "Routine Maintenance Service" : "Perawatan Service Rutin",
+      lang === "en" ? "2 Helmets & Raincoats" : "2 Helm & Jas Hujan",
+      lang === "en" ? "Priority Unit Replacement" : "Prioritas Motor Pengganti",
+    ],
+    cta_label: t("pricing.btn_monthly"),
+    is_featured: false,
+  },
+];
+
+const packages = apiPackages.length > 0
+  ? apiPackages.slice(0, 3).map((pkg) => {
+      const priceNum = typeof pkg.price === "string" ? parseFloat(pkg.price) : pkg.price;
+      const formattedPrice = new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0,
+      }).format(priceNum);
+
+      return {
+        name: lang === "en" ? (pkg.name_en || pkg.name_id) : (pkg.name_id || pkg.name_en),
+        subtitle: lang === "en" ? (pkg.subtitle_en || pkg.subtitle_id) : (pkg.subtitle_id || pkg.subtitle_en),
+        price: formattedPrice,
+        price_unit: lang === "en" ? (pkg.price_unit_en || pkg.price_unit_id) : (pkg.price_unit_id || pkg.price_unit_en),
+        benefits: (lang === "en" ? (pkg.benefits_en || pkg.benefits_id) : (pkg.benefits_id || pkg.benefits_en)) || [],
+        cta_label: lang === "en" ? (pkg.cta_label_en || pkg.cta_label_id) : (pkg.cta_label_id || pkg.cta_label_en),
+        is_featured: Boolean(pkg.is_featured),
+      };
+    })
+  : fallbackPackages;
+
+interface Props {
+  bg?: string;
+}
+
+const { bg = "bg-white" } = Astro.props;
+---
+
+<!-- Pricing Packages Section -->
+<section id="pricing" class={`${bg} py-16 lg:py-24`}>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    
+    <!-- Section Header -->
+    <div class="reveal max-w-2xl">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-[#FFE58A]/35 border border-[#FFE58A] px-3.5 py-1 text-xs font-bold tracking-[0.16em] text-[#5C4500] uppercase mb-3">
+        {t("pricing.eyebrow")}
+      </span>
+      <h2 class="mt-3 text-2xl sm:text-4xl font-extrabold text-[#1E293B] tracking-tight">
+        {t("pricing.headline")}
+      </h2>
+      <p class="mt-3 text-sm sm:text-base text-[#5F7380] leading-relaxed">
+        {t("pricing.desc")}
+      </p>
+    </div>
+
+    <!-- 3 Pricing Cards -->
+    <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-stretch">
+      {packages.map((pkg, idx) => (
+        <div 
+          class={`reveal stagger-${(idx % 3) + 1} card-interactive flex flex-col justify-between rounded-2xl p-6 sm:p-8 ${
+            pkg.is_featured
+              ? "bg-white border-2 border-[#8ED8F8] shadow-md relative"
+              : "bg-white border border-[#E2ECE8] shadow-sm"
+          }`}
+        >
+          <div>
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-bold text-[#1E293B]">{pkg.name}</h3>
+              {pkg.is_featured && (
+                <span class="text-[10px] font-bold uppercase tracking-wider text-[#423300] bg-[#FFE58A] border border-[#FFE58A] px-2.5 py-1 rounded-[8px] shadow-sm">
+                  {lang === "en" ? "Recommended" : "Rekomendasi"}
+                </span>
+              )}
+            </div>
+            
+            {pkg.subtitle && (
+              <p class="mt-1.5 text-xs text-[#5F7380]">{pkg.subtitle}</p>
+            )}
+
+            <!-- Price -->
+            <div class="mt-6 flex items-baseline gap-1">
+              <span class="text-2xl sm:text-3xl font-extrabold text-[#0284C7]">{pkg.price}</span>
+              <span class="text-xs text-[#5F7380]">{pkg.price_unit}</span>
+            </div>
+
+            <!-- Facilities / Benefits List -->
+            <ul class="mt-6 space-y-3 border-t border-[#E2ECE8] pt-6 text-xs sm:text-sm text-[#5F7380]">
+              {pkg.benefits.map((b: string) => (
+                <li class="flex items-start gap-2.5">
+                  <Icon name={icons.circleCheck} class="mt-0.5 h-4 w-4 shrink-0 text-[#10B981]" aria-hidden="true" />
+                  <span class="text-[#1E293B]">{b}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <!-- CTA Button -->
+          <a 
+            href={`/${lang}/katalog`}
+            class={`mt-8 block w-full rounded-[10px] py-3 text-center text-xs font-bold transition-all tracking-wide shadow-sm interactive-tap ${
+              pkg.is_featured
+                ? "bg-[#8ED8F8] hover:bg-[#72CBEF] text-[#0A2633] btn-shimmer"
+                : "border border-[#E2ECE8] bg-white hover:bg-[#8ED8F8] hover:text-[#0A2633] hover:border-[#8ED8F8] text-[#1E293B]"
+            }`}
+          >
+            {pkg.cta_label}
+          </a>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>

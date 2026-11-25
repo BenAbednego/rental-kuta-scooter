@@ -1,0 +1,88 @@
+---
+import { getLangFromUrl } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const isEn = lang === 'en';
+const hasConsentCookie = Astro.cookies.has('rmb_cookie_consent');
+---
+
+{!hasConsentCookie && (
+  <div
+    id="cookie-consent-banner"
+    role="dialog"
+    aria-live="polite"
+    aria-label={isEn ? 'Cookie consent notice' : 'Pemberitahuan penggunaan cookies'}
+    class="fixed bottom-4 left-4 right-4 z-[60] mx-auto hidden max-w-2xl rounded-[6px] border border-[#E2ECE8] bg-white/95 p-4 shadow-2xl backdrop-blur-md sm:bottom-6 sm:p-5"
+  >
+    <div class="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
+      <div class="min-w-0 flex-1">
+        <p class="text-xs font-extrabold uppercase tracking-wider text-[#0284C7]">
+          {isEn ? 'Cookie Preferences' : 'Penggunaan Cookies'}
+        </p>
+        <p class="mt-1 text-xs leading-relaxed text-[#5F7380] sm:text-[13px]">
+          {isEn
+            ? 'We use cookies to remember your language preference, keep your session active, and provide the best browsing experience.'
+            : 'Kami menggunakan cookies untuk menyimpan pilihan bahasa Anda, menjaga sesi tetap aktif, dan memberikan pengalaman terbaik di website ini.'}
+        </p>
+      </div>
+
+      <div class="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          id="cookie-essential-btn"
+          class="interactive-tap inline-flex h-9 items-center justify-center rounded-[6px] border border-[#E2ECE8] bg-white px-3.5 text-xs font-semibold text-[#5F7380] transition-colors hover:border-[#8ED8F8] hover:text-[#1E293B] cursor-pointer"
+        >
+          {isEn ? 'Essential Only' : 'Hanya Esensial'}
+        </button>
+        <button
+          type="button"
+          id="cookie-accept-btn"
+          class="btn-shimmer interactive-tap inline-flex h-9 items-center justify-center rounded-[6px] bg-[#0284C7] px-4 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#0369A1] cursor-pointer"
+        >
+          {isEn ? 'Accept All' : 'Terima Semua'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+<script is:inline>
+  const initCookieBanner = () => {
+    const banner = document.getElementById('cookie-consent-banner');
+    if (!banner) return;
+
+    const getCookie = (name) => {
+      const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+      return match ? decodeURIComponent(match[1]) : null;
+    };
+
+    if (getCookie('rmb_cookie_consent')) {
+      banner.remove();
+      return;
+    }
+
+    banner.classList.remove('hidden');
+
+    const saveConsent = (value) => {
+      document.cookie = `rmb_cookie_consent=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
+      if (value === 'essential') {
+        // Clear non-essential personalization cookies if user selects Essential Only
+        document.cookie = 'rmb_customer_name=; path=/; max-age=0; SameSite=Lax';
+        document.cookie = 'rmb_customer_email=; path=/; max-age=0; SameSite=Lax';
+      } else if (value === 'accepted') {
+        const currentLang = document.documentElement.lang || 'id';
+        document.cookie = `rmb_lang=${encodeURIComponent(currentLang)}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+      banner.classList.add('hidden');
+      window.dispatchEvent(new CustomEvent('rmb:cookie-consent', { detail: { consent: value } }));
+    };
+
+    document.getElementById('cookie-accept-btn')?.addEventListener('click', () => saveConsent('accepted'));
+    document.getElementById('cookie-essential-btn')?.addEventListener('click', () => saveConsent('essential'));
+  };
+
+  document.addEventListener('DOMContentLoaded', initCookieBanner);
+  document.addEventListener('astro:page-load', initCookieBanner);
+  initCookieBanner();
+</script>
+

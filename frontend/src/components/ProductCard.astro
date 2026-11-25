@@ -1,0 +1,129 @@
+---
+import { type Motor } from '../lib/api';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { Icon } from 'astro-icon/components';
+import { icons } from '../lib/icons';
+import { buildMotorInquiryMessage } from '../lib/whatsapp';
+
+interface Props {
+  motor: Motor;
+  whatsappNumber: string;
+}
+
+const { motor, whatsappNumber } = Astro.props;
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const isEn = lang === 'en';
+const t = useTranslations(lang);
+const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(buildMotorInquiryMessage(lang, motor.name))}`;
+
+// Format daily & weekly price
+const formattedDaily = new Intl.NumberFormat('id-ID').format(motor.price_daily);
+
+let weeklyPrice = motor.price_weekly;
+if (!weeklyPrice || weeklyPrice <= 0) {
+  weeklyPrice = Math.round(motor.price_daily * 6);
+} else if (weeklyPrice < 1000) {
+  weeklyPrice = Math.round(weeklyPrice * 1000000);
+}
+const formattedWeekly = new Intl.NumberFormat('id-ID').format(weeklyPrice);
+
+const cardId = `motor-${motor.id || motor.slug || Math.random().toString(36).substring(7)}`;
+---
+
+<div class="group card-interactive relative flex flex-col justify-between rounded-[6px] border border-[#E2ECE8] bg-white p-3.5 sm:p-6 shadow-sm">
+  <img
+    src="/images/logo-final.png?v=3"
+    alt=""
+    aria-hidden="true"
+    class="absolute right-3 top-3 sm:right-5 sm:top-5 z-20 h-9 w-13 sm:h-14 sm:w-20 object-contain"
+    loading="lazy"
+  />
+  
+  <div>
+    <!-- Photo Container: Clean white background with smooth motor image -->
+    <a 
+      href={`/${lang}/motor/${motor.slug}`}
+      class="relative w-full h-32 sm:h-48 flex items-center justify-center overflow-hidden rounded-[6px] bg-white block"
+      title={motor.name}
+    >
+      <!-- Shimmer/Skeleton in soft tint while loading -->
+      <div 
+        id={`shimmer-${cardId}`}
+        class="absolute inset-0 bg-slate-50 animate-pulse pointer-events-none transition-opacity duration-300"
+      ></div>
+
+      {motor.main_image ? (
+        <img 
+          src={motor.main_image} 
+          alt={`${motor.name} rental motor Kuta Bali`}
+          width="400"
+          height="250"
+          class="relative z-10 max-h-full max-w-full object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+          onload={`const s = document.getElementById('shimmer-${cardId}'); if (s) s.style.opacity = '0';`}
+          onerror={`this.style.display='none'; const fb = document.getElementById('fallback-${cardId}'); if (fb) fb.classList.remove('hidden'); const s = document.getElementById('shimmer-${cardId}'); if (s) s.style.opacity = '0';`}
+        />
+      ) : null}
+
+      <!-- Fallback neutral scooter silhouette -->
+      <div 
+        id={`fallback-${cardId}`}
+        class={`relative z-10 flex flex-col items-center justify-center gap-2 text-[#5F7380] ${motor.main_image ? 'hidden' : ''}`}
+      >
+        <Icon name={icons.bike} class="h-12 w-12 stroke-[1.5]" aria-hidden="true" />
+        <span class="text-[11px] font-semibold tracking-wider uppercase text-[#8D9FA9]">RMB Scooter</span>
+      </div>
+    </a>
+
+    <!-- Motor Name -->
+    <a 
+      href={`/${lang}/motor/${motor.slug}`} 
+      class="block mt-3 sm:mt-4 group-hover:text-[#0284C7] transition-colors"
+    >
+      <h3 class="text-sm sm:text-lg font-bold text-[#1E293B] line-clamp-1">
+        {motor.name}
+      </h3>
+    </a>
+
+    <!-- Pricing rows with icons matching theme -->
+    <div class="mt-2.5 sm:mt-3 space-y-2 sm:space-y-1.5 text-xs sm:text-sm text-[#5F7380]">
+      <!-- Row 1: Daily with Motorcycle Icon (Sky Blue tone) -->
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <Icon name={icons.bike} class="h-4 w-4 shrink-0 text-[#0284C7]" aria-hidden="true" />
+        <div class="leading-snug sm:leading-normal">
+          <span class="block sm:inline">{isEn ? 'Daily' : 'Harian'} :</span>{' '}
+          <span class="block sm:inline">Rp.{formattedDaily}</span>
+        </div>
+      </div>
+
+      <!-- Row 2: Weekly with Thumbs Up Icon (Sky Blue / Mint theme) -->
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <Icon name={icons.thumbsUp} class="h-4 w-4 shrink-0 fill-[#8ED8F8]/40 text-[#0284C7]" aria-hidden="true" />
+        <div class="leading-snug sm:leading-normal">
+          <span class="block sm:inline">{isEn ? 'Weekly' : 'Mingguan'} :</span>{' '}
+          <span class="block sm:inline">Rp.{formattedWeekly}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-3.5 sm:mt-5 flex items-center gap-1.5 sm:gap-2">
+    <a 
+      href={`/${lang}/motor/${motor.slug}`}
+      class="btn-shimmer interactive-tap inline-flex min-h-9 sm:min-h-10 flex-1 items-center justify-center rounded-[6px] bg-[#8ED8F8] px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold text-[#0A2633] transition-all shadow-sm hover:bg-[#72CBEF] sm:text-sm"
+    >
+      {t('fleet.card_detail')}
+    </a>
+    <a
+      href={whatsappUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`${t('fleet.card_chat_aria')}: ${motor.name}`}
+      class="interactive-tap inline-flex min-h-9 sm:min-h-10 min-w-0 flex-1 items-center justify-center rounded-[6px] bg-[#25D366] px-2.5 sm:px-4 text-white shadow-sm transition-colors hover:bg-[#1EBE5A]"
+    >
+      <Icon name={icons.whatsapp} class="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+    </a>
+  </div>
+
+</div>

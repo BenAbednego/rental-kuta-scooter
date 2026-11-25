@@ -1,0 +1,83 @@
+---
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { fetchFaqs } from "../lib/api";
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+// Fetch dynamic FAQs from Laravel backend API
+const apiFaqs = await fetchFaqs();
+
+// Fallback to i18n dictionary if backend is empty or unavailable
+const fallbackFaqs = [
+  { q: t("faq.q1"), a: t("faq.a1") },
+  { q: t("faq.q2"), a: t("faq.a2") },
+  { q: t("faq.q3"), a: t("faq.a3") },
+  { q: t("faq.q4"), a: t("faq.a4") },
+  { q: t("faq.q5"), a: t("faq.a5") },
+];
+
+const faqs = apiFaqs.length > 0
+  ? apiFaqs.map((item) => ({
+      q: lang === "en" ? (item.question_en || item.question_id) : (item.question_id || item.question_en),
+      a: lang === "en" ? (item.answer_en || item.answer_id) : (item.answer_id || item.answer_en),
+    }))
+  : fallbackFaqs;
+---
+
+<section class="py-16 lg:py-24 bg-white">
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+    <div class="overflow-hidden rounded-[6px] bg-[#0284C7] px-5 py-8 text-white shadow-lg sm:px-10 sm:py-11 lg:px-14">
+      <h2 class="mb-7 text-center text-2xl font-extrabold tracking-tight sm:mb-9 sm:text-3xl lg:text-4xl">
+        {lang === "en" ? "FAQ - Scooter Rental in Bali (Koota)" : "FAQ - Sewa Motor di Bali (Koota)"}
+      </h2>
+
+      {faqs.map((faq) => (
+        <details class="group border-t border-white/30">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 py-5 text-white [&::-webkit-details-marker]:hidden sm:py-6">
+            <h3 class="text-base font-semibold leading-relaxed sm:text-lg">
+              {faq.q}
+            </h3>
+            <span class="faq-toggle shrink-0" aria-hidden="true"></span>
+          </summary>
+
+          <p class="pb-5 pr-10 text-sm leading-relaxed text-white/90 sm:pb-6 sm:text-base">
+            {faq.a}
+          </p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq-toggle {
+    position: relative;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .faq-toggle::before,
+  .faq-toggle::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1rem;
+    height: 2px;
+    border-radius: 9999px;
+    background: currentColor;
+    content: "";
+    transform: translate(-50%, -50%);
+    transition: transform 180ms ease, opacity 180ms ease;
+  }
+
+  .faq-toggle::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+
+  details[open] .faq-toggle::after {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0);
+  }
+</style>

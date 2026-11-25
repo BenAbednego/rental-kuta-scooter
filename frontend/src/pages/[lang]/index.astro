@@ -1,0 +1,101 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Hero from '../../components/Hero.astro';
+import KeyBenefits from '../../components/KeyBenefits.astro';
+import AboutRMB from '../../components/AboutRMB.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import GallerySection from '../../components/GallerySection.astro';
+import Testimonials from '../../components/Testimonials.astro';
+import FAQAccordion from '../../components/FAQAccordion.astro';
+import ContactSection from '../../components/ContactSection.astro';
+import { DEFAULT_WHATSAPP_NUMBER, fetchMotors, fetchSettings, sanitizeWaNumber } from '../../lib/api';
+import { getLangFromUrl, useTranslations } from '../../i18n/utils';
+
+export const prerender = false;
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+// Fetch preview fleet motors (6 motors for 3-column layout)
+const [motors, settings] = await Promise.all([fetchMotors(), fetchSettings()]);
+const previewMotors = motors.slice(0, 6);
+const whatsappNumber = sanitizeWaNumber(settings.whatsapp_primary || DEFAULT_WHATSAPP_NUMBER);
+---
+
+<Layout seoPageKey="home">
+  <!-- 1. Hero Section -->
+  <Hero motors={motors} />
+
+  <!-- 2. Tentang RMB (Directly below Hero on Warm White) -->
+  <AboutRMB />
+
+  <!-- 3. Ringkasan Keunggulan / Fasilitas (Directly below Tentang RMB on Soft Tint) -->
+  <KeyBenefits />
+
+  <!-- 4. Katalog / Pilihan Motor (3-Column Grid on Pure White) -->
+  <section id="fleet" class="bg-white py-16 lg:py-24">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      
+      <!-- Section Header -->
+      <div class="reveal flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+        <div class="max-w-2xl">
+          <span class="text-xs sm:text-sm font-bold tracking-[0.16em] uppercase text-[#0284C7] block mb-2.5">
+            {t('fleet.eyebrow')}
+          </span>
+          <h2 class="text-2xl sm:text-4xl font-extrabold text-[#1E293B] tracking-tight">
+            {lang === 'en' ? 'Motorcycle Choices' : 'Pilihan Motor'}
+          </h2>
+          <p class="mt-3 text-sm sm:text-base text-[#5F7380] leading-relaxed">
+            {t('fleet.desc')}
+          </p>
+        </div>
+
+        <a 
+          href={`/${lang}/katalog`}
+          class="hidden sm:inline-flex items-center text-xs sm:text-sm font-bold text-[#0284C7] hover:text-[#0369A1] transition-colors"
+        >
+          <span>{t('fleet.view_all')}</span>
+        </a>
+      </div>
+
+      <!-- 3-Column Motorcycle Cards Grid: 2 col on mobile/tablet, 3 col >=1024px -->
+      <div class="mt-8 sm:mt-12 grid grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-8">
+        {previewMotors.length > 0 ? (
+          previewMotors.map((motor, idx) => (
+            <div class={`reveal stagger-${(idx % 3) + 1}`}>
+              <ProductCard motor={motor} whatsappNumber={whatsappNumber} />
+            </div>
+          ))
+        ) : (
+          <div class="col-span-full py-16 text-center text-sm text-[#8D9FA9]">
+            {t('fleet.empty')}
+          </div>
+        )}
+      </div>
+
+      <!-- Mobile Button: View All Fleet -->
+      <div class="reveal mt-10 text-center sm:hidden">
+        <a 
+          href={`/${lang}/katalog`}
+          class="inline-flex items-center justify-center w-full rounded-[6px] border border-[#E2ECE8] bg-white hover:border-[#8ED8F8] hover:text-[#0284C7] py-3 text-xs font-bold text-[#1E293B] transition-all shadow-sm"
+        >
+          <span>{t('fleet.view_all')}</span>
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 5. Galeri Dokumentasi (Pure White) -->
+  <GallerySection bg="bg-white" />
+
+  <!-- 6. Testimoni (Pure White) -->
+  <Testimonials bg="bg-white" />
+
+  <!-- 7. Pertanyaan yang Sering Diajukan -->
+  <FAQAccordion />
+
+  <!-- 8. Lokasi dan Kontak (Pure White) -->
+  <ContactSection bg="bg-white" />
+</Layout>

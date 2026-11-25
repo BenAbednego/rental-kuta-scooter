@@ -1,0 +1,116 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { Icon } from 'astro-icon/components';
+import { icons } from '../lib/icons';
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+const articles = [
+  {
+    title: lang === 'en' ? 'Tips for Safe Scooter Riding in Bali for First-Timers' : 'Tips Aman Berkendara Motor di Bali untuk Pemula',
+    desc: lang === 'en' ? 'Essential guide on traffic rules, helmet safety, and navigation in Kuta and Seminyak.' : 'Panduan lengkap aturan lalu lintas, keamanan helm, dan navigasi di Kuta & Seminyak.',
+    date: '12 Okt 2025',
+    img: '/images/kuta-3.jpeg',
+  },
+  {
+    title: lang === 'en' ? 'Top 5 Hidden Beaches Near Kuta Accessible by Scooter' : '5 Pantai Tersembunyi Dekat Kuta yang Mudah Diakses Motor',
+    desc: lang === 'en' ? 'Escape the crowds and discover quiet coastal spots in South Bali.' : 'Jelajahi pantai tenang di Bali Selatan yang paling asyik didatangi naik motor.',
+    date: '08 Okt 2025',
+    img: '/images/kuta-2.jpg',
+  },
+  {
+    title: lang === 'en' ? 'Scoopy vs NMAX: Which Scooter Fits Your Bali Itinerary?' : 'Scoopy vs NMAX: Pilih Motor Mana untuk Rute Liburanmu?',
+    desc: lang === 'en' ? 'Comparison for city cruising versus long-distance highway travel across Bali.' : 'Perbandingan hemat bahan bakar kota vs kenyamanan touring jarak jauh di Bali.',
+    date: '28 Sep 2025',
+    img: '/images/kuta-1.jpg',
+  },
+];
+---
+
+<!-- Section 8: CTA Banner Footer Promo (Tropical Fresh Banner) -->
+<section class="relative overflow-hidden bg-white py-12">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="rounded-3xl bg-gradient-to-r from-[#8ED8F8]/20 via-[#A7E8D0]/20 to-[#FFE58A]/20 p-8 sm:p-12 relative overflow-hidden shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 border border-[#E2ECE8]">
+      
+      <div class="z-10 text-center md:text-left max-w-xl">
+        <span class="inline-block rounded-full bg-white text-[#1E293B] border border-[#E2ECE8] text-xs font-bold px-3.5 py-1 uppercase tracking-wider mb-3 shadow-sm">
+          <span class="inline-flex items-center gap-1.5">2k+ Rating 4.9 <Icon name={icons.star} class="h-3.5 w-3.5 fill-[#EAB308] text-[#EAB308]" aria-hidden="true" /></span>
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1E293B] tracking-tight">
+          SEWA MOTOR KUTA BALI
+        </h2>
+        <p class="mt-2 text-xs sm:text-sm text-[#5F7380]">
+          Booking motor impianmu sekarang & nikmati kemudahan antar-jemput gratis di area Kuta!
+        </p>
+      </div>
+
+      <!-- Primary CTA Button (Sky Blue) -->
+      <div class="z-10 shrink-0">
+        <a 
+          href={`/${lang}/katalog`}
+          class="inline-block rounded-[10px] bg-[#8ED8F8] hover:bg-[#72CBEF] px-8 py-3.5 text-xs font-bold text-[#0A2633] shadow-md transition-all uppercase tracking-wider hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(142,216,248,0.35)]"
+        >
+          <span class="inline-flex items-center gap-2">Sewa Motor Sekarang <Icon name={icons.arrowRight} class="h-4 w-4 stroke-[2.5]" aria-hidden="true" /></span>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="py-16 lg:py-24 bg-white">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    
+    <div class="text-center max-w-xl mx-auto">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-[#FFE58A]/35 px-4 py-1.5 text-xs font-bold text-[#5C4500] uppercase tracking-wider border border-[#FFE58A]">
+        {t('blog.tag')}
+      </span>
+      <h2 class="mt-3 text-3xl font-extrabold text-[#1E293B] tracking-tight sm:text-4xl">
+        {t('blog.title')}
+      </h2>
+      <p class="mt-2 text-sm text-[#5F7380]">
+        {t('blog.subtitle')}
+      </p>
+    </div>
+
+    <!-- 3 Article Cards Grid -->
+    <div class="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+      {articles.map((item) => (
+        <div class="rounded-2xl border border-[#E2ECE8] bg-white hover:border-[#8ED8F8] overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div class="h-44 overflow-hidden bg-slate-100 relative">
+            <img 
+              src={item.img} 
+              alt={item.title} 
+              class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+            <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-md border border-[#E2ECE8] text-[#0284C7] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+              {item.date}
+            </span>
+          </div>
+
+          <div class="p-6 flex-1 flex flex-col justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-[#1E293B] hover:text-[#0284C7] transition-colors leading-snug">
+                {item.title}
+              </h3>
+              <p class="mt-2 text-xs text-[#5F7380] leading-relaxed line-clamp-2">
+                {item.desc}
+              </p>
+            </div>
+
+            <a 
+              href={`/${lang}/kontak`}
+              class="mt-4 inline-block text-xs font-bold text-[#0284C7] hover:underline"
+            >
+              <span class="inline-flex items-center gap-1">Baca Selengkapnya <Icon name={icons.arrowRight} class="h-3.5 w-3.5" aria-hidden="true" /></span>
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>

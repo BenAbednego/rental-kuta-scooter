@@ -1,0 +1,393 @@
+---
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { fetchGallery } from "../lib/api";
+
+interface Props {
+  bg?: string;
+  id?: string;
+}
+
+const { bg = "bg-white", id = "gallery" } = Astro.props;
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+// Fetch dynamic gallery from backend
+const apiGallery = await fetchGallery();
+
+// Fallback images from public/images
+const fallbackImages = [
+  {
+    image_url: "/images/kuta-2.jpg",
+    caption: lang === "en" ? "Exploring South Bali coastal roads" : "Menjelajahi pesisir pantai Bali Selatan",
+  },
+  {
+    image_url: "/images/kuta-4.jpeg",
+    caption: lang === "en" ? "Sunset touring in Bali" : "Touring sore sunset di Bali",
+  },
+  {
+    image_url: "/images/kuta-1.jpg",
+    caption: lang === "en" ? "Kuta Beach pickup service" : "Layanan antar jemput area Kuta",
+  },
+  {
+    image_url: "/images/kuta-3.jpg",
+    caption: lang === "en" ? "Easy scooter handover at hotel" : "Serah terima unit cepat di hotel",
+  },
+  {
+    image_url: "/images/kuta-5.jpeg",
+    caption: lang === "en" ? "Scenic coastal ride in Kuta" : "Perjalanan santai menyusuri Kuta",
+  },
+  {
+    image_url: "/images/hero-canggu-scooter.jpg",
+    caption: lang === "en" ? "Freedom to ride around Canggu & Seminyak" : "Bebas berkeliling Canggu & Seminyak",
+  },
+];
+
+const galleryList = apiGallery.length > 0 ? apiGallery : fallbackImages;
+
+// Split items into 2 rows: alternating indices
+const row1Items = galleryList.filter((_, idx) => idx % 2 === 0);
+const row2Items = galleryList.filter((_, idx) => idx % 2 !== 0);
+
+// Helper function to build a long enough loop track (minimum 4-6 items per group)
+function buildLoopTrack<T>(items: T[], minLength = 5): T[] {
+  if (items.length === 0) return [];
+  let res = [...items];
+  while (res.length < minLength) {
+    res = [...res, ...items];
+  }
+  return res;
+}
+
+const row1Track = buildLoopTrack(row1Items.length > 0 ? row1Items : galleryList, 5);
+const row2Track = buildLoopTrack(row2Items.length > 0 ? row2Items : galleryList, 5);
+
+// Row configuration: Row 0 drifts right, Row 1 drifts left
+const rows = [
+  { track: row1Track, direction: 'right', speed: 0.75 },
+  { track: row2Track, direction: 'left', speed: 0.70 },
+];
+
+const fadeColorClass = "from-white";
+---
+
+<!-- Section: Galeri (Interactive Infinite Marquee Showcase) -->
+<section id={id} class={`interactive-gallery-section ${bg} py-16 lg:py-24 overflow-hidden select-none`}>
+  <!-- Section Header (Constrained to max-w-7xl) -->
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-10 sm:mb-14">
+    <div class="reveal max-w-2xl">
+      <span class="text-xs sm:text-sm font-bold tracking-[0.16em] uppercase text-[#0284C7] block mb-2.5">
+        {t("gallery.eyebrow")}
+      </span>
+      <h2 class="text-2xl sm:text-4xl font-extrabold text-[#1E293B] tracking-tight">
+        {t("gallery.headline")}
+      </h2>
+      <p class="mt-3 text-sm sm:text-base text-[#5F7380] leading-relaxed">
+        {t("gallery.desc")}
+      </p>
+    </div>
+  </div>
+
+  <!-- Full-Width Interactive Marquee Container with Ambient Gradient Edge Masks -->
+  <div class="reveal stagger-1 relative w-full overflow-hidden">
+    <!-- Left Gradient Fade Overlay -->
+    <div class={`pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-28 lg:w-44 z-20 bg-gradient-to-r ${fadeColorClass} to-transparent`}></div>
+    <!-- Right Gradient Fade Overlay -->
+    <div class={`pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-28 lg:w-44 z-20 bg-gradient-to-l ${fadeColorClass} to-transparent`}></div>
+
+    <!-- Rows Stack -->
+    <div class="space-y-4 sm:space-y-6">
+      {rows.map((row, rowIdx) => (
+        <div class="relative w-full overflow-hidden marquee-mask">
+          <div 
+            class="marquee-scroll-container flex overflow-x-auto no-scrollbar cursor-grab active:cursor-grabbing"
+            data-direction={row.direction}
+            data-speed={row.speed}
+            data-row-index={rowIdx}
+            style="touch-action: pan-y; -webkit-overflow-scrolling: touch;"
+          >
+            <!-- Group 1 -->
+            <div class="flex gap-4 sm:gap-6 pr-4 sm:pr-6 shrink-0 marquee-group">
+              {row.track.map((item) => (
+                <div class="group relative w-[270px] sm:w-[330px] lg:w-[370px] shrink-0 overflow-hidden rounded-[6px] border border-[#E2ECE8] bg-white transition-all duration-300 hover:border-[#8ED8F8] hover:shadow-xl pointer-events-auto">
+                  <div class="aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                    <img 
+                      src={item.image_url || (item as any).image_path} 
+                      alt={item.caption || "RMB Sewa Motor Kuta Gallery"} 
+                      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 pointer-events-none"
+                      loading="lazy"
+                      draggable="false"
+                    />
+                  </div>
+                  {item.caption && (
+                    <div class="p-3.5 sm:p-4 border-t border-[#E2ECE8] bg-white">
+                      <p class="text-xs text-[#5F7380] group-hover:text-[#1E293B] transition-colors line-clamp-1 font-medium pointer-events-none">
+                        {item.caption}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <!-- Group 2 (Middle) -->
+            <div class="flex gap-4 sm:gap-6 pr-4 sm:pr-6 shrink-0 marquee-group" aria-hidden="true">
+              {row.track.map((item) => (
+                <div class="group relative w-[270px] sm:w-[330px] lg:w-[370px] shrink-0 overflow-hidden rounded-[6px] border border-[#E2ECE8] bg-white transition-all duration-300 hover:border-[#8ED8F8] hover:shadow-xl pointer-events-auto">
+                  <div class="aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                    <img 
+                      src={item.image_url || (item as any).image_path} 
+                      alt={item.caption || "RMB Sewa Motor Kuta Gallery"} 
+                      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 pointer-events-none"
+                      loading="lazy"
+                      draggable="false"
+                    />
+                  </div>
+                  {item.caption && (
+                    <div class="p-3.5 sm:p-4 border-t border-[#E2ECE8] bg-white">
+                      <p class="text-xs text-[#5F7380] group-hover:text-[#1E293B] transition-colors line-clamp-1 font-medium pointer-events-none">
+                        {item.caption}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <!-- Group 3 (Buffer for infinite bidirectional drag) -->
+            <div class="flex gap-4 sm:gap-6 pr-4 sm:pr-6 shrink-0 marquee-group" aria-hidden="true">
+              {row.track.map((item) => (
+                <div class="group relative w-[270px] sm:w-[330px] lg:w-[370px] shrink-0 overflow-hidden rounded-[6px] border border-[#E2ECE8] bg-white transition-all duration-300 hover:border-[#8ED8F8] hover:shadow-xl pointer-events-auto">
+                  <div class="aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                    <img 
+                      src={item.image_url || (item as any).image_path} 
+                      alt={item.caption || "RMB Sewa Motor Kuta Gallery"} 
+                      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 pointer-events-none"
+                      loading="lazy"
+                      draggable="false"
+                    />
+                  </div>
+                  {item.caption && (
+                    <div class="p-3.5 sm:p-4 border-t border-[#E2ECE8] bg-white">
+                      <p class="text-xs text-[#5F7380] group-hover:text-[#1E293B] transition-colors line-clamp-1 font-medium pointer-events-none">
+                        {item.caption}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+  function setupInteractiveMarquee() {
+    const sections = document.querySelectorAll('.interactive-gallery-section');
+    
+    sections.forEach((section) => {
+      if (section.dataset.marqueeReady === 'true') return;
+      section.dataset.marqueeReady = 'true';
+
+      const containers = section.querySelectorAll('.marquee-scroll-container');
+
+      containers.forEach((container) => {
+        const direction = container.dataset.direction === 'right' ? -1 : 1;
+        const baseSpeed = parseFloat(container.dataset.speed || '0.75');
+        const speed = direction * baseSpeed;
+
+        const groups = container.querySelectorAll('.marquee-group');
+        if (groups.length === 0) return;
+
+        let groupWidth = groups[0].offsetWidth || 1800;
+        let currentScroll = 0;
+        let isPointerDown = false;
+        let isDragging = false;
+        let startX = 0;
+        let scrollStart = 0;
+        let lastInteractionTime = -999999;
+        let isVisible = true;
+        let isWrapping = false;
+
+        // Position to middle group (Group 2) so user can scroll or drag in either direction immediately
+        const initScroll = () => {
+          if (groups[0]) {
+            const measured = groups[0].offsetWidth;
+            if (measured > 0) {
+              groupWidth = measured;
+            }
+            if (groupWidth > 0 && container.scrollLeft === 0) {
+              container.scrollLeft = groupWidth;
+              currentScroll = groupWidth;
+            } else if (container.scrollLeft > 0) {
+              currentScroll = container.scrollLeft;
+            }
+          }
+        };
+
+        initScroll();
+        window.addEventListener('load', initScroll, { once: true });
+        
+        window.addEventListener('resize', () => {
+          if (groups[0]) {
+            const oldWidth = groupWidth;
+            const newWidth = groups[0].offsetWidth;
+            if (newWidth > 0) {
+              groupWidth = newWidth;
+              if (oldWidth > 0 && currentScroll > 0) {
+                currentScroll = (currentScroll / oldWidth) * groupWidth;
+                container.scrollLeft = currentScroll;
+              }
+            }
+          }
+        });
+
+        function wrapCheck() {
+          if (groupWidth <= 0 || isWrapping) return;
+          isWrapping = true;
+          // Group 1: [0, W], Group 2: [W, 2W], Group 3: [2W, 3W]
+          if (currentScroll >= 2 * groupWidth) {
+            currentScroll -= groupWidth;
+            container.scrollLeft = currentScroll;
+          } else if (currentScroll <= 0) {
+            currentScroll += groupWidth;
+            container.scrollLeft = currentScroll;
+          }
+          isWrapping = false;
+        }
+
+        // Mouse Drag Interaction
+        container.addEventListener('mousedown', (e) => {
+          if (e.button !== 0) return;
+          isPointerDown = true;
+          isDragging = false;
+          startX = e.pageX ?? e.clientX;
+          scrollStart = container.scrollLeft;
+          currentScroll = container.scrollLeft;
+          lastInteractionTime = performance.now();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isPointerDown) return;
+          const currentX = e.pageX ?? e.clientX;
+          const delta = currentX - startX;
+          if (Math.abs(delta) > 3) {
+            isDragging = true;
+            container.style.cursor = 'grabbing';
+            currentScroll = scrollStart - delta;
+            container.scrollLeft = currentScroll;
+            wrapCheck();
+            lastInteractionTime = performance.now();
+          }
+        });
+
+        const stopDrag = () => {
+          if (!isPointerDown) return;
+          isPointerDown = false;
+          container.style.cursor = 'grab';
+          currentScroll = container.scrollLeft;
+          lastInteractionTime = performance.now();
+          setTimeout(() => {
+            isDragging = false;
+          }, 60);
+        };
+
+        window.addEventListener('mouseup', stopDrag);
+
+        // Prevent accidental card click while dragging
+        container.addEventListener('click', (e) => {
+          if (isDragging) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }, true);
+
+        // Trackpad & Mouse Wheel Interaction
+        container.addEventListener('wheel', () => {
+          lastInteractionTime = performance.now();
+          currentScroll = container.scrollLeft;
+          wrapCheck();
+        }, { passive: true });
+
+        // Touch Interaction (Mobile)
+        container.addEventListener('touchstart', (e) => {
+          if (e.touches.length > 0) {
+            isPointerDown = true;
+            startX = e.touches[0].pageX;
+            scrollStart = container.scrollLeft;
+            currentScroll = container.scrollLeft;
+            lastInteractionTime = performance.now();
+          }
+        }, { passive: true });
+
+        container.addEventListener('touchmove', (e) => {
+          if (!isPointerDown || e.touches.length === 0) return;
+          const currentX = e.touches[0].pageX;
+          const delta = currentX - startX;
+          currentScroll = scrollStart - delta;
+          container.scrollLeft = currentScroll;
+          wrapCheck();
+          lastInteractionTime = performance.now();
+        }, { passive: true });
+
+        container.addEventListener('touchend', () => {
+          isPointerDown = false;
+          currentScroll = container.scrollLeft;
+          lastInteractionTime = performance.now();
+        }, { passive: true });
+
+        // Animation Loop using requestAnimationFrame
+        let lastTime = performance.now();
+        function animate(now) {
+          const elapsed = Math.min(now - lastTime, 50); // cap max delta
+          lastTime = now;
+
+          const timeSinceInteraction = now - lastInteractionTime;
+          // Resume auto-drift 800ms after user stops dragging or wheeling
+          const isInteracting = isPointerDown || (timeSinceInteraction < 800);
+
+          if (isVisible && !isInteracting && groupWidth > 0) {
+            const step = speed * (elapsed / 16.67);
+            currentScroll += step;
+            container.scrollLeft = currentScroll;
+            wrapCheck();
+          }
+
+          requestAnimationFrame(animate);
+        }
+
+        // IntersectionObserver: Pause loop when off-screen to preserve CPU
+        if (typeof IntersectionObserver !== 'undefined') {
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              isVisible = entry.isIntersecting;
+              if (isVisible) {
+                lastTime = performance.now();
+                currentScroll = container.scrollLeft;
+              }
+            });
+          }, { threshold: 0, rootMargin: '400px 0px 400px 0px' });
+
+          observer.observe(container);
+        }
+
+        // Start animation loop
+        lastTime = performance.now();
+        requestAnimationFrame(animate);
+      });
+    });
+  }
+
+  // Lifecycle listeners for Astro
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupInteractiveMarquee);
+  } else {
+    setupInteractiveMarquee();
+  }
+  document.addEventListener('astro:page-load', setupInteractiveMarquee);
+</script>

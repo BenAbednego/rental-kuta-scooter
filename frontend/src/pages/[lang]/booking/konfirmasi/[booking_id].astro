@@ -1,0 +1,144 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import { DEFAULT_WHATSAPP_NUMBER, fetchBookingById, fetchSettings, sanitizeWaNumber } from '../../../../lib/api';
+import { getLangFromUrl, useTranslations } from '../../../../i18n/utils';
+import { buildBookingMessage } from '../../../../lib/whatsapp';
+import { Icon } from 'astro-icon/components';
+import { icons } from '../../../../lib/icons';
+
+export const prerender = false;
+
+const { booking_id } = Astro.params;
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+
+const [booking, settings] = await Promise.all([
+  fetchBookingById(booking_id as string),
+  fetchSettings(),
+]);
+
+if (!booking) {
+  return Astro.redirect(`/${lang}`);
+}
+
+const formattedTotal = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  maximumFractionDigits: 0,
+}).format(booking.total_price);
+
+const waMessage = buildBookingMessage(lang, {
+  motor: booking.motor?.name || '',
+  name: booking.customer_name,
+  phone: booking.customer_whatsapp,
+  documentType: booking.customer_document_type,
+  startDate: booking.start_date,
+  endDate: booking.end_date,
+  duration: booking.total_days,
+  addons: booking.addons,
+  notes: booking.notes,
+  total: booking.total_price,
+});
+
+const rawWaNumber = settings.whatsapp_primary || DEFAULT_WHATSAPP_NUMBER;
+const waNumber = sanitizeWaNumber(rawWaNumber);
+const whatsappUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`;
+---
+
+<Layout 
+  title={`${t('confirm.success_title')} #${booking.booking_id || booking.id} — RMB Sewa Motor Kuta`}
+  description="Konfirmasi pesanan sewa motor Kuta Bali via WhatsApp."
+>
+  <div class="py-16 sm:py-24 bg-white min-h-[85vh] flex items-center justify-center">
+    <div class="mx-auto max-w-lg px-4 sm:px-6 w-full">
+      
+      <!-- Card Container -->
+      <div class="rounded-2xl border border-[#E2ECE8] bg-white p-6 sm:p-8 text-center shadow-xl">
+        
+        <!-- Success Icon (Mint) -->
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#A7E8D0]/40 text-[#0E4F39]">
+          <Icon name={icons.circleCheck} class="h-8 w-8" aria-hidden="true" />
+        </div>
+
+        <h1 class="mt-5 text-2xl sm:text-3xl font-extrabold text-[#1E293B] tracking-tight">
+          {t('confirm.success_title')}
+        </h1>
+        <p class="mt-1 text-xs sm:text-sm text-[#5F7380]">
+          {t('confirm.success_subtitle')} <span class="font-bold text-[#0284C7]">#{booking.booking_id || booking.id}</span>
+        </p>
+
+        <!-- Summary Details Box -->
+        <div class="mt-6 rounded-xl bg-slate-50 border border-[#E2ECE8] p-5 text-left space-y-3 text-xs sm:text-sm">
+          <div class="flex justify-between items-center border-b border-[#E2ECE8] pb-2.5">
+            <span class="text-[#5F7380]">{t('confirm.motor_label')}</span>
+            <span class="font-bold text-[#1E293B]">{booking.motor?.name}</span>
+          </div>
+          <div class="flex justify-between items-center border-b border-[#E2ECE8] pb-2.5">
+            <span class="text-[#5F7380]">{lang === 'en' ? 'Customer:' : 'Nama Pelanggan:'}</span>
+            <span class="font-medium text-[#1E293B]">{booking.customer_name}</span>
+          </div>
+          <div class="flex justify-between items-center border-b border-[#E2ECE8] pb-2.5">
+            <span class="text-[#5F7380]">{t('confirm.dates_label')}</span>
+            <span class="font-medium text-[#1E293B]">{booking.start_date} – {booking.end_date} ({booking.total_days} {t('book.days_unit')})</span>
+          </div>
+
+          <!-- Add-ons Breakdown -->
+          {booking.addons && booking.addons.length > 0 && (
+            <div class="border-b border-[#E2ECE8] pb-2.5 space-y-1.5">
+              <span class="text-[#5F7380] block text-[11px] font-bold uppercase tracking-wider">
+                {lang === 'en' ? 'Selected Add-ons:' : 'Perlengkapan Tambahan:'}
+              </span>
+              {booking.addons.map((addon) => {
+                const addonName = (lang === 'en' && addon.name_en) ? addon.name_en : addon.name;
+                const subtotalFormatted = new Intl.NumberFormat('id-ID', {
+                  style: 'currency',
+                  currency: 'IDR',
+                  maximumFractionDigits: 0,
+                }).format(addon.subtotal);
+                return (
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="text-[#1E293B] font-medium">• {addon.quantity}x {addonName}</span>
+                    <span class="text-[#0284C7] font-semibold">{subtotalFormatted}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div class="flex justify-between items-center pt-1">
+            <span class="font-bold text-[#1E293B]">{t('confirm.total_label')}</span>
+            <span class="font-extrabold text-base sm:text-lg text-[#0284C7]">{formattedTotal}</span>
+          </div>
+        </div>
+
+        <p class="mt-5 text-xs text-[#5F7380] leading-relaxed">
+          {t('confirm.instruction')}
+        </p>
+
+        <!-- WhatsApp CTA Button -->
+        <div class="mt-6 space-y-3">
+          <a 
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#25D366] hover:bg-[#1EBE5A] py-3.5 text-center text-xs sm:text-sm font-semibold text-white transition-all tracking-wide shadow-md hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(37,211,102,0.25)]"
+          >
+            <Icon name={icons.messageCircle} class="h-4 w-4" aria-hidden="true" />
+            <span>{t('confirm.wa_btn')}</span>
+          </a>
+
+          <a 
+            href={`/${lang}`}
+            class="inline-flex items-center gap-1.5 text-xs font-bold text-[#5F7380] hover:text-[#0284C7] transition-colors pt-2"
+          >
+            <Icon name={icons.arrowLeft} class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{t('confirm.home_btn')}</span>
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</Layout>

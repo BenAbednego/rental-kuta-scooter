@@ -1,0 +1,363 @@
+---
+import { getLangFromUrl, useTranslations, getRouteWithoutLang } from "../i18n/utils";
+import { Icon } from "astro-icon/components";
+import { DEFAULT_WHATSAPP_NUMBER, fetchMotors, fetchSettings, formatPhoneNumber, sanitizeWaNumber } from "../lib/api";
+import { locales } from "../i18n/locales";
+import type { TranslationKey } from "../i18n/ui";
+import { buildBookingMessage } from "../lib/whatsapp";
+import { icons } from "../lib/icons";
+
+const url = Astro.url;
+const lang = getLangFromUrl(url);
+const t = useTranslations(lang);
+const routeWithoutLang = getRouteWithoutLang(url.pathname);
+
+const isHome = routeWithoutLang === "/" || routeWithoutLang === "";
+const isEn = lang === "en";
+
+const [settings, motors] = await Promise.all([fetchSettings(), fetchMotors()]);
+const types = [...new Set(motors.map((motor) => motor.category).filter(Boolean))].sort();
+const brands = [...new Set(
+  motors
+    .map((motor) => motor.brand?.trim())
+    .filter((brand): brand is string => Boolean(brand)),
+)].sort();
+const categoryKeys: Record<string, TranslationKey> = {
+  matic: "fleet.category.matic",
+  premium: "fleet.category.premium",
+  sport: "fleet.category.sport",
+};
+const rawWaNumber = settings.whatsapp_primary || DEFAULT_WHATSAPP_NUMBER;
+const waNumber = sanitizeWaNumber(rawWaNumber);
+const displayPhone = formatPhoneNumber(waNumber, false);
+const activeLocale = locales.find((locale) => locale.code === lang) ?? locales[0];
+const waMessage = buildBookingMessage(lang);
+const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`;
+
+const isActive = (targetPath: string) => {
+  if (targetPath === "/") {
+    return isHome;
+  }
+  return routeWithoutLang === targetPath || routeWithoutLang.startsWith(targetPath + "/");
+};
+
+const localePath = (locale: string) => `/${locale}${routeWithoutLang === "/" ? "" : routeWithoutLang}`;
+---
+
+<!-- Keep the homepage navbar in flow; the homepage main section slides underneath it. -->
+<header 
+  id="main-header" 
+  class={isHome
+    ? "relative z-50 bg-transparent"
+    : "relative z-50 bg-white shadow-sm"}
+>
+  <div class="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-18 sm:h-20">
+    
+    <!-- Left: Brand Identity -->
+    <a href={`/${lang}`} class="flex items-center group shrink-0">
+      <img 
+        src="/images/logo-final.png?v=3" 
+        alt="Kuta Logo" 
+        class="h-16 w-24 sm:h-20 sm:w-30 object-contain drop-shadow-sm" 
+      />
+    </a>
+
+    <!-- Center: Balanced Search Bar between Logo and Navigation (Only on Home page) -->
+    {isHome && (
+      <div class="hidden lg:flex flex-1 items-center justify-center px-6">
+        <form
+          method="get"
+          action={`/${lang}/katalog`}
+          class="m-0 flex h-9 items-center rounded-[6px] border border-white/30 bg-white/15 backdrop-blur-md p-1 shadow-[0_4px_20px_rgba(0,0,0,0.15)] hover:bg-white/20 transition-all"
+        >
+          <label class="relative flex h-full items-center gap-1.5 pl-2.5 pr-6 cursor-pointer">
+            <span class="text-[10px] font-bold uppercase tracking-wider leading-none text-white/75">
+              {t("fleet.filter_type")}:
+            </span>
+            <select
+              name="tipe"
+              aria-label={t("fleet.filter_type")}
+              class="h-full appearance-none bg-transparent text-xs font-semibold text-white focus:outline-none cursor-pointer leading-none [&>option]:text-[#1E293B] [&>option]:bg-white"
+            >
+              <option value="">{t("fleet.filter_all_types")}</option>
+              {types.map((type) => (
+                <option value={type}>
+                  {categoryKeys[type] ? t(categoryKeys[type]) : type}
+                </option>
+              ))}
+            </select>
+            <Icon name={icons.chevronDown} class="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-white/80" aria-hidden="true" />
+          </label>
+
+          <span class="h-4 w-px shrink-0 bg-white/25"></span>
+
+          <label class="relative flex h-full items-center gap-1.5 pl-2.5 pr-6 cursor-pointer">
+            <span class="text-[10px] font-bold uppercase tracking-wider leading-none text-white/75">
+              {t("fleet.filter_brand")}:
+            </span>
+            <select
+              name="brand"
+              disabled={brands.length === 0}
+              aria-label={t("fleet.filter_brand")}
+              class="h-full appearance-none bg-transparent text-xs font-semibold text-white focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 leading-none [&>option]:text-[#1E293B] [&>option]:bg-white"
+            >
+              <option value="">{t("fleet.filter_all_brands")}</option>
+              {brands.map((brand) => (
+                <option value={brand}>{brand}</option>
+              ))}
+            </select>
+            <Icon name={icons.chevronDown} class="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-white/80" aria-hidden="true" />
+          </label>
+
+          <button
+            type="submit"
+            class="inline-flex h-full items-center justify-center gap-1.5 rounded-[4px] bg-[#0284C7] hover:bg-[#0369A1] px-3.5 text-xs font-bold text-white transition-colors cursor-pointer shrink-0 leading-none shadow-sm"
+          >
+            <Icon name={icons.search} class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{t("fleet.search_bike")}</span>
+          </button>
+        </form>
+      </div>
+    )}
+
+    <!-- Right-Aligned Navigation Links -->
+    <nav class={`hidden md:flex items-center gap-6 lg:gap-7 text-sm font-medium md:mr-6 lg:mr-7 shrink-0 ${!isHome ? "md:ml-auto" : "md:ml-auto lg:ml-0"}`}>
+      <a 
+        href={`/${lang}`} 
+        class={`relative py-1 transition-colors ${
+          isActive("/")
+          ? `${isHome ? "text-white" : "text-[#1E293B]"} font-bold`
+          : isHome ? "text-white/85 hover:text-white" : "text-[#5F7380] hover:text-[#1E293B]"
+        }`}
+      >
+        Home
+        {isActive("/") && (
+          <span class="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-[#8ED8F8] rounded-full"></span>
+        )}
+      </a>
+
+
+      <a 
+        href={`/${lang}/katalog`} 
+        class={`relative py-1 transition-colors ${
+          isActive("/katalog")
+          ? `${isHome ? "text-white" : "text-[#1E293B]"} font-bold`
+          : isHome ? "text-white/85 hover:text-white" : "text-[#5F7380] hover:text-[#1E293B]"
+        }`}
+      >
+        {isEn ? "Fleet" : "Armada"}
+        {isActive("/katalog") && (
+          <span class="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-[#8ED8F8] rounded-full"></span>
+        )}
+      </a>
+
+
+      <a 
+        href={`/${lang}/kontak`} 
+        class={`relative py-1 transition-colors ${
+          isActive("/kontak")
+          ? `${isHome ? "text-white" : "text-[#1E293B]"} font-bold`
+          : isHome ? "text-white/85 hover:text-white" : "text-[#5F7380] hover:text-[#1E293B]"
+        }`}
+      >
+        {isEn ? "Contact" : "Kontak"}
+        {isActive("/kontak") && (
+          <span class="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-[#8ED8F8] rounded-full"></span>
+        )}
+      </a>
+    </nav>
+
+    <!-- Right: Primary CTA + Mobile Toggle -->
+    <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+      
+      <!-- Primary Sky Blue CTA Button -->
+      <a 
+        href={`/${lang}/katalog`}
+        class="btn-shimmer interactive-tap hidden sm:inline-flex h-9 items-center justify-center rounded-[6px] bg-[#8ED8F8] hover:bg-[#72CBEF] px-5 text-xs font-bold leading-none text-[#0A2633] transition-all tracking-wide shadow-sm hover:shadow-[0_8px_24px_rgba(142,216,248,0.35)]"
+      >
+        {isEn ? "Rent Now" : "Sewa Sekarang"}
+      </a>
+
+      <!-- Mobile Menu Hamburger Button (No White Box/Border) -->
+      <button 
+        id="mobile-menu-toggle"
+        type="button"
+        class={`interactive-tap md:hidden p-2 rounded-[6px] bg-transparent border-0 transition-colors cursor-pointer ${
+          isHome ? "text-white hover:text-[#8ED8F8]" : "text-[#1E293B] hover:text-[#0284C7]"
+        }`}
+        aria-label="Toggle Menu"
+      >
+        <Icon name={icons.menu} class="h-5 w-5" id="menu-icon-open" aria-hidden="true" />
+        <Icon name={icons.x} class="hidden h-5 w-5" id="menu-icon-close" aria-hidden="true" />
+      </button>
+
+    </div>
+
+  </div>
+
+  <!-- Mobile Drawer Menu -->
+  <div id="mobile-drawer" class="hidden md:hidden px-4 pt-3 pb-5 bg-white border-b border-[#E2ECE8] shadow-lg flex flex-col gap-2 text-sm font-medium text-[#1E293B]">
+    <a href={`/${lang}`} class={`py-2 px-3 rounded-lg transition-colors ${isActive('/') ? 'text-[#0284C7] bg-[#8ED8F8]/15 font-semibold' : 'hover:bg-white'}`}>Home</a>
+    <a href={`/${lang}/katalog`} class={`py-2 px-3 rounded-lg transition-colors ${isActive('/katalog') ? 'text-[#0284C7] bg-[#8ED8F8]/15 font-semibold' : 'hover:bg-white'}`}>{isEn ? "Fleet" : "Armada"}</a>
+    <a href={`/${lang}/kontak`} class={`py-2 px-3 rounded-lg transition-colors ${isActive('/kontak') ? 'text-[#0284C7] bg-[#8ED8F8]/15 font-semibold' : 'hover:bg-white'}`}>{isEn ? "Contact" : "Kontak"}</a>
+    
+    <div class="pt-2 border-t border-[#E2ECE8] mt-1 space-y-2">
+      <a 
+        href={waUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="interactive-tap w-full flex items-center justify-center gap-2 rounded-[10px] bg-[#25D366] hover:bg-[#1EBE5A] py-2.5 text-xs font-semibold text-white transition-all tracking-wide shadow-sm"
+      >
+        <Icon name={icons.messageCircle} class="h-3.5 w-3.5" aria-hidden="true" />
+        <span>WhatsApp: {displayPhone}</span>
+      </a>
+      <div class="grid grid-cols-2 gap-2 pt-2" aria-label="Language selector">
+        {locales.map((locale) => (
+          <a
+            href={localePath(locale.code)}
+            lang={locale.code}
+            data-lang-switch={locale.code}
+            aria-label={locale.label}
+            aria-current={locale.code === lang ? "page" : undefined}
+            class={`flex items-center justify-center gap-2 rounded-[6px] border px-3 py-2.5 text-xs font-semibold transition-colors ${
+              locale.code === lang ? "border-[#8ED8F8] bg-[#8ED8F8]/15 text-[#0284C7]" : "border-[#E2ECE8] text-[#5F7380] hover:bg-slate-50"
+            }`}
+          >
+            <Icon name={locale.flagIcon} width={22} height={16} class="shrink-0 rounded-sm" aria-hidden="true" />
+            <span>{locale.label}</span>
+          </a>
+        ))}
+      </div>
+      <a 
+        href={`/${lang}/katalog`}
+        class="btn-shimmer interactive-tap w-full text-center rounded-[10px] bg-[#8ED8F8] hover:bg-[#72CBEF] py-2.5 text-xs font-bold text-[#0A2633] transition-all tracking-wide block shadow-md"
+      >
+        {isEn ? "Rent Now" : "Sewa Sekarang"}
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- Fixed Bottom-Left Language Switcher (Dropup Menu) -->
+<div id="floating-lang-switcher" class="fixed bottom-6 left-6 z-50 group">
+  <!-- Dropup Menu (Opens Upward) -->
+  <div
+    id="floating-lang-menu"
+    class="absolute left-0 bottom-full mb-2 w-36 rounded-[6px] p-1.5 shadow-xl border border-[#E2ECE8] bg-white opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 data-[open=true]:opacity-100 data-[open=true]:visible data-[open=true]:translate-y-0 transition-all duration-150 z-50"
+  >
+    {locales.map((locale) => (
+      <a
+        href={localePath(locale.code)}
+        lang={locale.code}
+        data-lang-switch={locale.code}
+        aria-label={locale.label}
+        aria-current={locale.code === lang ? "page" : undefined}
+        class={`flex items-center gap-2.5 rounded-[4px] px-3 py-2 text-xs font-medium transition-colors ${
+          locale.code === lang ? "text-[#0284C7] bg-[#8ED8F8]/15 font-semibold" : "text-[#5F7380] hover:text-[#1E293B] hover:bg-slate-50"
+        }`}
+      >
+        <Icon name={locale.flagIcon} width={22} height={16} class="shrink-0 rounded-[2px]" aria-hidden="true" />
+        <span>{locale.label}</span>
+      </a>
+    ))}
+  </div>
+
+  <!-- Trigger Button (Static at Bottom-Left) -->
+  <button
+    id="floating-lang-btn"
+    type="button"
+    class="inline-flex h-10 items-center gap-2 rounded-[6px] border border-[#E2ECE8] bg-white px-3.5 text-xs font-bold text-[#1E293B] hover:bg-slate-50 hover:border-[#8ED8F8] transition-colors cursor-pointer shadow-lg"
+    aria-label={`Select language, current language ${activeLocale.label}`}
+    aria-expanded="false"
+  >
+    <Icon name={activeLocale.flagIcon} width={22} height={16} class="shrink-0 rounded-[2px]" aria-hidden="true" />
+    <span class="tracking-wider">{activeLocale.shortLabel}</span>
+    <Icon
+      id="floating-lang-chevron"
+      name={icons.chevronDown}
+      class="h-3.5 w-3.5 text-[#5F7380] rotate-180 transition-transform duration-200 group-hover:rotate-0 group-hover:text-[#1E293B]"
+      aria-hidden="true"
+    />
+  </button>
+</div>
+
+<script is:inline>
+  const initNavbar = () => {
+    const toggleBtn = document.getElementById('mobile-menu-toggle');
+    const drawer = document.getElementById('mobile-drawer');
+    const openIcon = document.getElementById('menu-icon-open');
+    const closeIcon = document.getElementById('menu-icon-close');
+
+    if (toggleBtn && drawer) {
+      toggleBtn.onclick = () => {
+        const isHidden = drawer.classList.contains('hidden');
+        if (isHidden) {
+          drawer.classList.remove('hidden');
+          openIcon?.classList.add('hidden');
+          closeIcon?.classList.remove('hidden');
+        } else {
+          drawer.classList.add('hidden');
+          openIcon?.classList.remove('hidden');
+          closeIcon?.classList.add('hidden');
+        }
+      };
+    }
+
+    const langSwitcher = document.getElementById('floating-lang-switcher');
+    const langBtn = document.getElementById('floating-lang-btn');
+    const langMenu = document.getElementById('floating-lang-menu');
+    const langChevron = document.getElementById('floating-lang-chevron');
+
+    if (langSwitcher && langBtn && langMenu) {
+      langBtn.onclick = (e) => {
+        e.stopPropagation();
+        const isOpen = langMenu.dataset.open === 'true';
+        langMenu.dataset.open = isOpen ? 'false' : 'true';
+        langBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        langChevron?.classList.toggle('!rotate-0', !isOpen);
+      };
+
+      document.addEventListener('click', (e) => {
+        if (!langSwitcher.contains(e.target)) {
+          langMenu.dataset.open = 'false';
+          langBtn.setAttribute('aria-expanded', 'false');
+          langChevron?.classList.remove('!rotate-0');
+        }
+      });
+    }
+
+    // Persist chosen language in cookie (`rmb_lang`) for 1 year when user switches language
+    document.querySelectorAll('[data-lang-switch]').forEach((link) => {
+      link.addEventListener('click', () => {
+        const chosenLang = link.getAttribute('data-lang-switch');
+        if (chosenLang === 'id' || chosenLang === 'en') {
+          document.cookie = `rmb_lang=${chosenLang}; path=/; max-age=31536000; SameSite=Lax`;
+          try {
+            sessionStorage.setItem('rmb_lang_synced', '1');
+          } catch {}
+        }
+      });
+    });
+
+    // Restore preferred language from cookie when returning to the website in a new browser session
+    try {
+      const match = document.cookie.match(/(?:^|; )rmb_lang=(id|en)/);
+      const savedLang = match ? match[1] : null;
+      const currentLang = document.documentElement.lang;
+      if (!sessionStorage.getItem('rmb_lang_synced')) {
+        sessionStorage.setItem('rmb_lang_synced', '1');
+        if (savedLang && savedLang !== currentLang) {
+          const restPath = window.location.pathname.replace(/^\/(id|en)(?=\/|$)/, '');
+          window.location.replace(`/${savedLang}${restPath}${window.location.search}${window.location.hash}`);
+          return;
+        }
+      }
+      if (!savedLang && (currentLang === 'id' || currentLang === 'en')) {
+        document.cookie = `rmb_lang=${currentLang}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+    } catch {}
+  };
+
+  document.addEventListener('astro:page-load', initNavbar);
+  document.addEventListener('DOMContentLoaded', initNavbar);
+</script>
